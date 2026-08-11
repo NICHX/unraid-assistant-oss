@@ -1,0 +1,7 @@
+subscription SystemMetricsTemperature {
+  systemMetricsTemperature {
+    summary {
+      average
+    }
+  }
+}

@@ -1,0 +1,16 @@
+subscription NotificationsOverview {
+  notificationsOverview {
+    unread {
+      info
+      warning
+      alert
+      total
+    }
+    archive {
+      info
+      warning
+      alert
+      total
+    }
+  }
+}

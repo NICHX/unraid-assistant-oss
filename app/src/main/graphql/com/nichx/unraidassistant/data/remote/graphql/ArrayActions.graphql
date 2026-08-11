@@ -1,0 +1,41 @@
+mutation ArrayStart {
+  array {
+    setState(input: { desiredState: START }) {
+      id
+      state
+    }
+  }
+}
+
+mutation ArrayStop {
+  array {
+    setState(input: { desiredState: STOP }) {
+      id
+      state
+    }
+  }
+}
+
+mutation ParityCheckStart($correct: Boolean!) {
+  parityCheck {
+    start(correct: $correct)
+  }
+}
+
+mutation ParityCheckPause {
+  parityCheck {
+    pause
+  }
+}
+
+mutation ParityCheckResume {
+  parityCheck {
+    resume
+  }
+}
+
+mutation ParityCheckCancel {
+  parityCheck {
+    cancel
+  }
+}

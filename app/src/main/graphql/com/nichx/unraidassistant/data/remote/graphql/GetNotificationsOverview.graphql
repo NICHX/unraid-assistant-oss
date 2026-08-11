@@ -1,0 +1,18 @@
+query GetNotificationsOverview {
+  notifications {
+    overview {
+      unread {
+        info
+        warning
+        alert
+        total
+      }
+      archive {
+        info
+        warning
+        alert
+        total
+      }
+    }
+  }
+}

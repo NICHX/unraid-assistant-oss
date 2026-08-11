@@ -1,0 +1,79 @@
+query GetStorage {
+  array {
+    id
+    state
+    parityCheckStatus {
+      status
+      progress
+      speed
+      errors
+      correcting
+      paused
+      running
+      duration
+    }
+    capacity {
+      kilobytes {
+        free
+        used
+        total
+      }
+    }
+    parities {
+      id
+      name
+      device
+      size
+      status
+      temp
+      type
+      isSpinning
+    }
+    disks {
+      id
+      name
+      device
+      size
+      status
+      temp
+      rotational
+      fsSize
+      fsFree
+      fsUsed
+      type
+      isSpinning
+      numReads
+      numWrites
+      numErrors
+    }
+    caches {
+      id
+      name
+      device
+      size
+      status
+      temp
+      rotational
+      fsSize
+      fsFree
+      fsUsed
+      type
+      isSpinning
+    }
+    boot {
+      id
+      name
+      device
+      size
+    }
+  }
+  shares {
+    id
+    name
+    free
+    used
+    size
+    cache
+    comment
+  }
+}

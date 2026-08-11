@@ -1,0 +1,7 @@
+subscription SystemMetricsMemory {
+  systemMetricsMemory {
+    total
+    used
+    percentTotal
+  }
+}

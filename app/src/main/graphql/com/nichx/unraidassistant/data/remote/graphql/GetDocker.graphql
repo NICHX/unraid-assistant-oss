@@ -1,0 +1,20 @@
+query GetDocker {
+  docker {
+    containers {
+      id
+      names
+      image
+      state
+      status
+      autoStart
+      autoStartWait
+      iconUrl
+      webUiUrl
+      templatePath
+      isUpdateAvailable
+      lanIpPorts
+      sizeRootFs
+      created
+    }
+  }
+}

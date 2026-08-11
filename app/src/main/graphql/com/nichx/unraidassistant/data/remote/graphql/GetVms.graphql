@@ -1,0 +1,45 @@
+query GetVms {
+  vms {
+    domains {
+      id
+      name
+      state
+    }
+  }
+}
+
+mutation StartVm($id: PrefixedID!) {
+  vm {
+    start(id: $id)
+  }
+}
+
+mutation StopVm($id: PrefixedID!) {
+  vm {
+    stop(id: $id)
+  }
+}
+
+mutation ForceStopVm($id: PrefixedID!) {
+  vm {
+    forceStop(id: $id)
+  }
+}
+
+mutation PauseVm($id: PrefixedID!) {
+  vm {
+    pause(id: $id)
+  }
+}
+
+mutation ResumeVm($id: PrefixedID!) {
+  vm {
+    resume(id: $id)
+  }
+}
+
+mutation RebootVm($id: PrefixedID!) {
+  vm {
+    reboot(id: $id)
+  }
+}
