@@ -1,0 +1,162 @@
+name: Release
+
+# 开源版发布流程：推送 vX.Y.Z 标签 → 构建签名 APK → 在本仓库创建 GitHub Release 并上传资产；
+# 兜底：workflow_dispatch 手动指定已有 tag 重跑（失败重试 / 补发）。
+# 签名：优先使用仓库 Secrets（KEYSTORE_BASE64/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD），
+#       未配置时由 CI 生成一次性签名密钥（APK 可安装；不同 Release 签名不同，升级旧版需卸载重装）。
+run-name: Release ${{ github.event.inputs.tag || github.ref_name }}
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '已有 tag（如 v1.0.0），用于对已打标签的提交重跑发布'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # tag 推送时检出对应 tag；手动触发时检出指定 tag
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          # 与 compileOptions sourceCompatibility=21 对齐（AGP 9.x 最低 JDK 17）
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Resolve tag and version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            || { echo "::error::tag 必须是 vX.Y.Z 格式，实际为 '$TAG'"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate versionName matches tag
+        run: |
+          EXPECTED="${{ steps.version.outputs.version }}"
+          CURRENT="$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || true)"
+          if [ -z "$CURRENT" ]; then
+            echo "::error::app/build.gradle.kts 中找不到 versionName，请先提升版本再打 tag"
+            exit 1
+          fi
+          if [ "$CURRENT" != "$EXPECTED" ]; then
+            echo "::error::versionName($CURRENT) 与 tag($EXPECTED) 不一致，请先在 app/build.gradle.kts 中提升版本并重新打 tag"
+            exit 1
+          fi
+          echo "versionName=$CURRENT 校验通过"
+
+      - name: Setup release signing
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.jks
+            # 逐行写入（避免 heredoc 内容与 YAML 块标量缩进冲突）
+            echo "storeFile=release.jks" > keystore.properties
+            echo "storePassword=$KEYSTORE_PASSWORD" >> keystore.properties
+            echo "keyAlias=$KEY_ALIAS" >> keystore.properties
+            echo "keyPassword=$KEY_PASSWORD" >> keystore.properties
+            echo "已注入正式签名配置"
+          else
+            STORE_PASS="$(openssl rand -hex 16)"
+            # JDK 21 keytool 默认 PKCS12:key 密码恒等于 store 密码(-keypass 会被忽略),
+            # 因此 keystore.properties 中 keyPassword 也写 STORE_PASS,避免 AGP 用错密码读取
+            keytool -genkeypair -v \
+              -keystore app/release.jks \
+              -alias oss-release \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$STORE_PASS" \
+              -dname "CN=unRAID Assistant OSS, O=NICHX, C=CN" 2>/dev/null
+            echo "storeFile=release.jks" > keystore.properties
+            echo "storePassword=$STORE_PASS" >> keystore.properties
+            echo "keyAlias=oss-release" >> keystore.properties
+            echo "keyPassword=$STORE_PASS" >> keystore.properties
+            echo "已生成一次性签名密钥（未配置正式签名 Secrets）"
+          fi
+
+      - name: Run tests and build release APK
+        run: ./gradlew testDebugUnitTest assembleRelease --no-daemon
+
+      - name: Prepare APK artifacts
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DIR="app/build/outputs/apk/release"
+          cd "$DIR"
+          # 有签名 → app-release.apk；无签名 → app-release-unsigned.apk，统一重命名为契约名
+          for f in app-release.apk app-release-unsigned.apk; do
+            [ -f "$f" ] || continue
+            mv "$f" "unraid-assistant-oss-v${VERSION}.apk"
+            sha256sum "unraid-assistant-oss-v${VERSION}.apk" > "unraid-assistant-oss-v${VERSION}.apk.sha256"
+          done
+          ls -la
+          [ -f "unraid-assistant-oss-v${VERSION}.apk" ] || { echo "::error::未找到 release APK 产物"; exit 1; }
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          PREV="$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)"
+          NOTES="${{ github.workspace }}/release-notes.md"
+          {
+            echo "## 变更日志"
+            echo
+            if [ -n "$PREV" ]; then
+              git log --oneline --no-merges "$PREV..$TAG"
+            else
+              git log --oneline --no-merges "$TAG"
+            fi
+          } > "$NOTES"
+          cat "$NOTES"
+
+      - name: Publish GitHub Release
+        # 本仓库即发布仓库：使用 GITHUB_TOKEN（contents: write）即可，无需跨仓库 PAT
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: unRAID 助手（开源版）v${{ steps.version.outputs.version }}
+          body_path: ${{ github.workspace }}/release-notes.md
+          files: |
+            app/build/outputs/apk/release/unraid-assistant-oss-v${{ steps.version.outputs.version }}.apk
+            app/build/outputs/apk/release/unraid-assistant-oss-v${{ steps.version.outputs.version }}.apk.sha256
+          fail_on_unmatched_files: true

@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 服务器机箱主体 + 两条硬盘槽指示 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M38,30 L70,30 C73.3,30 76,32.7 76,36 L76,72 C76,75.3 73.3,78 70,78 L38,78 C34.7,78 32,75.3 32,72 L32,36 C32,32.7 34.7,30 38,30 Z M36,42 L36,48 L72,48 L72,42 Z M36,54 L36,60 L72,60 L72,54 Z" />
+    <!-- 状态指示灯 -->
+    <path
+        android:fillColor="#FF82B1FF"
+        android:pathData="M44,36 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+</vector>

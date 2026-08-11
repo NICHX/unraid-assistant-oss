@@ -1,0 +1,62 @@
+mutation StartContainer($id: PrefixedID!) {
+  docker {
+    start(id: $id) {
+      id
+      state
+    }
+  }
+}
+
+mutation StopContainer($id: PrefixedID!) {
+  docker {
+    stop(id: $id) {
+      id
+      state
+    }
+  }
+}
+
+mutation RestartContainer($id: PrefixedID!) {
+  docker {
+    restart(id: $id) {
+      id
+      state
+    }
+  }
+}
+
+mutation PauseContainer($id: PrefixedID!) {
+  docker {
+    pause(id: $id) {
+      id
+      state
+    }
+  }
+}
+
+mutation UnpauseContainer($id: PrefixedID!) {
+  docker {
+    unpause(id: $id) {
+      id
+      state
+    }
+  }
+}
+
+mutation UpdateContainer($id: PrefixedID!) {
+  docker {
+    updateContainer(id: $id) {
+      id
+      state
+    }
+  }
+}
+
+mutation UpdateAllContainers {
+  docker {
+    updateAllContainers {
+      id
+      state
+    }
+  }
+}

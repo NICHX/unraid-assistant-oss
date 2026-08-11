@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      局域网管理工具：服务器与容器 WebUI 常为明文 HTTP（unRAID WebGUI 默认 http），
+      且服务器地址为任意内网 IP/主机名——<domain> 不支持 CIDR/网段，无法静态枚举。
+      故平台层整体允许明文（HTTPS 仍走系统信任锚），但应用层以明文白名单兜底：
+      OkHttp 拦截器与 WebView 导航守卫对每个 http:// 请求做白名单判定，
+      默认放行 RFC1918 内网网段（192.168.0.0/16、10.0.0.0/8、172.16.0.0/12）与 localhost，
+      用户可在设置页增删规则；非白名单明文一律拦截，不发起网络连接。
+      此双层策略为本工具的刻意设计（见上），非误配。
+    -->
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- 信任用户安装的 CA 证书：自签证书的推荐路径——
+                 用户在系统设置中安装自建 CA 后，OkHttp 与 WebView 均自动放行，
+                 无需为服务器逐个开启"跳过校验"。
+            -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

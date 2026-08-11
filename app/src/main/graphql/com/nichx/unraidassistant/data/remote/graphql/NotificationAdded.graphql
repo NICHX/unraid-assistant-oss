@@ -1,0 +1,13 @@
+subscription NotificationAdded {
+  notificationAdded {
+    id
+    title
+    subject
+    description
+    importance
+    link
+    type
+    timestamp
+    formattedTimestamp
+  }
+}

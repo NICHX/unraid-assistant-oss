@@ -1,0 +1,73 @@
+query GetDashboard {
+  server {
+    name
+    comment
+    status
+    lanip
+    wanip
+  }
+  vars {
+    version
+  }
+  info {
+    os {
+      hostname
+      uptime
+      kernel
+      arch
+    }
+    cpu {
+      brand
+      cores
+      threads
+      speed
+    }
+    system {
+      manufacturer
+      model
+      virtual
+    }
+    versions {
+      core {
+        unraid
+        api
+        kernel
+      }
+    }
+  }
+  metrics {
+    cpu {
+      percentTotal
+    }
+    memory {
+      total
+      used
+      free
+      percentTotal
+    }
+    temperature {
+      summary {
+        average
+        hottest {
+          name
+          current {
+            value
+            status
+          }
+        }
+        warningCount
+        criticalCount
+      }
+    }
+  }
+  notifications {
+    overview {
+      unread {
+        info
+        warning
+        alert
+        total
+      }
+    }
+  }
+}

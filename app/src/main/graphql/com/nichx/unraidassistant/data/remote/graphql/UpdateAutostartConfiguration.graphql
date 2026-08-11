@@ -1,0 +1,5 @@
+mutation UpdateAutostartConfiguration($entries: [DockerAutostartEntryInput!]!, $persistUserPreferences: Boolean) {
+  docker {
+    updateAutostartConfiguration(entries: $entries, persistUserPreferences: $persistUserPreferences)
+  }
+}
